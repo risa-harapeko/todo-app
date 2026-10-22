@@ -1,8 +1,8 @@
 # 秘密情報（絶対にGitHubに上げない）
-   credentials.json
-   .env
+credentials.json
+.env
 
-   # Pythonが自動で作るもの
-   .venv/
-   venv/
-   __pycache__/
+# Pythonが自動で作るもの
+.venv/
+venv/
+__pycache__/
