@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 import gspread
 from dotenv import load_dotenv
-from flask import Flask, redirect, render_template, request, url_for
+from flask import Flask, abort, redirect, render_template, request, url_for
 
 load_dotenv()
 
@@ -52,6 +52,38 @@ def add():
     now = datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S")
 
     ws.append_row([new_id, title, content, due_date, now, now])
+    return redirect(url_for("index"))
+
+
+@app.route("/edit/<int:todo_id>", methods=["GET", "POST"])
+def edit(todo_id):
+    ws = get_worksheet()
+    todos = ws.get_all_records()
+
+    # 1行目は見出しなので、データのi番目はシートの i+2 行目
+    for i, t in enumerate(todos):
+        if str(t["id"]) == str(todo_id):
+            todo, row = t, i + 2
+            break
+    else:
+        abort(404)
+
+    if request.method == "GET":
+        return render_template("edit.html", todo=todo)
+
+    title = request.form.get("title", "").strip()
+    content = request.form.get("content", "").strip()
+    due_date = request.form.get("due_date", "")
+
+    if not title:
+        form_todo = {**todo, "title": title, "content": content, "due_date": due_date}
+        return render_template(
+            "edit.html", todo=form_todo, error="タイトルを入力してください。"
+        ), 400
+
+    now = datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S")
+    # B〜D列(title, content, due_date)とF列(updated_at)を書き換え、E列(created_at)はそのまま
+    ws.update(range_name=f"B{row}:F{row}", values=[[title, content, due_date, todo["created_at"], now]])
     return redirect(url_for("index"))
 
 
