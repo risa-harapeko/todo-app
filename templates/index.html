@@ -27,7 +27,13 @@
         {% if todo.content %}<p>{{ todo.content }}</p>{% endif %}
         <div class="meta">
           <span>{% if todo.due_date %}期限: {{ todo.due_date }}{% else %}期限なし{% endif %}</span>
-          <a href="{{ url_for('edit', todo_id=todo.id) }}">編集</a>
+          <span class="actions">
+            <a href="{{ url_for('edit', todo_id=todo.id) }}">編集</a>
+            <form method="post" action="{{ url_for('delete', todo_id=todo.id) }}"
+                  onsubmit='return confirm({{ ("「" ~ todo.title ~ "」を削除しますか？")|tojson }});'>
+              <button type="submit" class="delete">削除</button>
+            </form>
+          </span>
         </div>
       </div>
     {% endfor %}

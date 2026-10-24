@@ -55,18 +55,18 @@ def add():
     return redirect(url_for("index"))
 
 
+def find_todo(ws, todo_id):
+    # 1行目は見出しなので、データのi番目はシートの i+2 行目
+    for i, t in enumerate(ws.get_all_records()):
+        if str(t["id"]) == str(todo_id):
+            return t, i + 2
+    abort(404)
+
+
 @app.route("/edit/<int:todo_id>", methods=["GET", "POST"])
 def edit(todo_id):
     ws = get_worksheet()
-    todos = ws.get_all_records()
-
-    # 1行目は見出しなので、データのi番目はシートの i+2 行目
-    for i, t in enumerate(todos):
-        if str(t["id"]) == str(todo_id):
-            todo, row = t, i + 2
-            break
-    else:
-        abort(404)
+    todo, row = find_todo(ws, todo_id)
 
     if request.method == "GET":
         return render_template("edit.html", todo=todo)
@@ -84,6 +84,14 @@ def edit(todo_id):
     now = datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S")
     # B〜D列(title, content, due_date)とF列(updated_at)を書き換え、E列(created_at)はそのまま
     ws.update(range_name=f"B{row}:F{row}", values=[[title, content, due_date, todo["created_at"], now]])
+    return redirect(url_for("index"))
+
+
+@app.route("/delete/<int:todo_id>", methods=["POST"])
+def delete(todo_id):
+    ws = get_worksheet()
+    _, row = find_todo(ws, todo_id)
+    ws.delete_rows(row)
     return redirect(url_for("index"))
 
 
