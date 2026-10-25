@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Todoアプリ</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="{{ url_for('static', filename='script.js') }}" defer></script>
 </head>
 <body>
   <h1>Todo一覧</h1>
@@ -22,12 +23,15 @@
 
   {% if todos %}
     {% for todo in todos %}
-      <div class="todo">
+      <div class="todo{% if todo.done == '済' %} done{% endif %}">
         <h2>{{ todo.title }}</h2>
         {% if todo.content %}<p>{{ todo.content }}</p>{% endif %}
         <div class="meta">
           <span>{% if todo.due_date %}期限: {{ todo.due_date }}{% else %}期限なし{% endif %}</span>
           <span class="actions">
+            <form method="post" action="{{ url_for('toggle', todo_id=todo.id) }}">
+              <button type="submit" class="toggle">{% if todo.done == '済' %}未完了に戻す{% else %}完了{% endif %}</button>
+            </form>
             <a href="{{ url_for('edit', todo_id=todo.id) }}">編集</a>
             <form method="post" action="{{ url_for('delete', todo_id=todo.id) }}"
                   onsubmit='return confirm({{ ("「" ~ todo.title ~ "」を削除しますか？")|tojson }});'>

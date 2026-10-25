@@ -51,7 +51,7 @@ def add():
     new_id = max(ids, default=0) + 1
     now = datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S")
 
-    ws.append_row([new_id, title, content, due_date, now, now])
+    ws.append_row([new_id, title, content, due_date, now, now, ""])
     return redirect(url_for("index"))
 
 
@@ -84,6 +84,17 @@ def edit(todo_id):
     now = datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S")
     # B〜D列(title, content, due_date)とF列(updated_at)を書き換え、E列(created_at)はそのまま
     ws.update(range_name=f"B{row}:F{row}", values=[[title, content, due_date, todo["created_at"], now]])
+    return redirect(url_for("index"))
+
+
+@app.route("/toggle/<int:todo_id>", methods=["POST"])
+def toggle(todo_id):
+    ws = get_worksheet()
+    todo, row = find_todo(ws, todo_id)
+    now = datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S")
+    # G列(done)が「済」なら空に、空なら「済」に切り替える
+    new_done = "" if todo.get("done") == "済" else "済"
+    ws.update(range_name=f"F{row}:G{row}", values=[[now, new_done]])
     return redirect(url_for("index"))
 
 
