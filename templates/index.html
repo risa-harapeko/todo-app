@@ -3,12 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Todoアプリ</title>
+  <title>My todo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand:wght@600&family=Zen+Maru+Gothic:wght@400;700&display=swap">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <script src="{{ url_for('static', filename='script.js') }}" defer></script>
 </head>
 <body>
-  <h1>Todo一覧</h1>
+  <h1>My todo</h1>
 
   <form class="add-form" method="post" action="{{ url_for('add') }}">
     {% if error %}<p class="error">{{ error }}</p>{% endif %}

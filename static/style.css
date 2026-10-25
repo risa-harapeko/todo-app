@@ -1,23 +1,148 @@
-body { font-family: sans-serif; max-width: 720px; margin: 0 auto; padding: 16px; background: #f7f7f7; color: #222; }
-h1 { font-size: 1.5rem; }
-.todo { background: #fff; border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
-.todo h2 { font-size: 1.1rem; margin: 0 0 4px; }
-.todo p { margin: 4px 0; white-space: pre-wrap; }
-.meta { font-size: .85rem; color: #666; display: flex; justify-content: space-between; gap: 8px; }
-.empty { color: #666; }
-.add-form { background: #fff; border-radius: 8px; padding: 12px 16px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
-.add-form label { display: block; font-size: .9rem; margin-top: 8px; }
-.add-form input, .add-form textarea { width: 100%; box-sizing: border-box; padding: 6px 8px; font-size: 1rem; }
-.add-form button { margin-top: 12px; padding: 8px 20px; font-size: 1rem; background: #2a7; color: #fff; border: none; border-radius: 6px; cursor: pointer; transition: background .15s, transform .05s; }
-.add-form button:hover { background: #1e8a5a; }
+/* 北欧風の色 */
+:root {
+  --bg: #f6f2ec;        /* オートミール */
+  --card: #fffdf9;
+  --text: #3e3a36;
+  --muted: #8c857d;
+  --line: #e7e0d6;
+  --sage: #8fa89b;      /* セージグリーン */
+  --sage-dark: #74907f;
+  --blue: #9db4c8;      /* くすみブルー */
+  --pink: #e6bfb3;      /* やさしいピンク */
+  --mustard: #dcb866;
+  --red: #c47a6d;
+}
+
+body {
+  font-family: "Zen Maru Gothic", sans-serif;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 32px 16px 48px;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+/* 見出しと、その下の刺しゅう風の模様 */
+h1 {
+  font-family: "Quicksand", "Zen Maru Gothic", sans-serif;
+  font-size: 2.2rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-align: center;
+  margin: 0 0 28px;
+}
+/* セージとピンクの水玉を交互に並べる */
+h1::after {
+  content: "";
+  display: block;
+  width: 132px;
+  height: 8px;
+  margin: 10px auto 0;
+  background:
+    radial-gradient(circle at 4px 4px, var(--sage) 3px, transparent 3.5px) 0 0 / 22px 8px,
+    radial-gradient(circle at 15px 4px, var(--pink) 3px, transparent 3.5px) 0 0 / 22px 8px;
+}
+
+/* 追加・編集フォーム */
+.add-form {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 20px 22px;
+  margin-bottom: 32px;
+  box-shadow: 0 4px 14px rgba(120, 100, 80, .06);
+}
+.add-form label { display: block; font-size: .85rem; color: var(--muted); margin-top: 12px; }
+.add-form label:first-of-type { margin-top: 0; }
+.add-form input, .add-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 4px;
+  padding: 10px 12px;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  transition: border-color .15s, background .15s;
+}
+.add-form input:focus, .add-form textarea:focus { outline: none; border-color: var(--sage); background: #fff; }
+.add-form button {
+  display: block;
+  width: 100%;
+  margin-top: 18px;
+  padding: 12px;
+  font: inherit;
+  font-weight: 700;
+  letter-spacing: .1em;
+  color: #fff;
+  background: var(--sage);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background .15s, transform .05s;
+}
+.add-form button:hover { background: var(--sage-dark); }
 .add-form button:active { transform: translateY(1px); }
-button:disabled { opacity: .6; cursor: wait; }
-.toggle:hover, .delete:hover { opacity: .7; }
-.error { color: #c00; margin: 0 0 8px; }
-.actions { display: flex; align-items: center; gap: 12px; }
+.error { color: var(--red); margin: 0 0 8px; font-size: .9rem; }
+
+/* Todoのカード（左の色帯を順番に変える） */
+.todo {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-left: 6px solid var(--sage);
+  border-radius: 16px;
+  padding: 14px 18px;
+  margin-bottom: 14px;
+  box-shadow: 0 2px 8px rgba(120, 100, 80, .05);
+  transition: transform .15s;
+}
+.todo:nth-of-type(3n+2) { border-left-color: var(--blue); }
+.todo:nth-of-type(3n) { border-left-color: var(--pink); }
+.todo:hover { transform: translateY(-1px); }
+.todo h2 { font-size: 1.1rem; font-weight: 700; margin: 0 0 4px; }
+.todo p { margin: 4px 0; white-space: pre-wrap; color: #5b5650; }
+.meta {
+  font-size: .82rem;
+  color: var(--muted);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* 完了したTodo */
+.todo.done { background: #f1ede6; border-left-color: var(--line); box-shadow: none; }
+.todo.done h2 { text-decoration: line-through; text-decoration-color: var(--pink); color: var(--muted); }
+.todo.done p { color: var(--muted); }
+
+/* 完了・編集・削除のボタン（小さな丸いタグ風） */
+.actions { display: flex; align-items: center; gap: 6px; }
 .actions form { margin: 0; }
-.toggle { background: none; border: none; padding: 0; color: #2a7; font-size: inherit; cursor: pointer; text-decoration: underline; }
-.todo.done { background: #eee; }
-.todo.done h2 { text-decoration: line-through; color: #888; }
-.todo.done p { color: #888; }
-.delete { background: none; border: none; padding: 0; color: #c00; font-size: inherit; cursor: pointer; text-decoration: underline; }
+.actions a, .toggle, .delete {
+  display: inline-block;
+  padding: 3px 12px;
+  font: inherit;
+  font-size: .8rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity .15s, background .15s;
+}
+.toggle { color: #fff; background: var(--sage); }
+.todo.done .toggle { color: var(--sage-dark); background: transparent; border-color: var(--sage); }
+.actions a { color: #4f6b80; background: #e6eef4; }
+.delete { color: var(--red); background: #f7e6e1; }
+.actions a:hover, .toggle:hover, .delete:hover { opacity: .75; }
+button:disabled { opacity: .6; cursor: wait; }
+
+.empty { text-align: center; color: var(--muted); padding: 24px 0; }
+
+/* 編集ページの「一覧に戻る」 */
+body > a { display: inline-block; color: var(--sage-dark); text-decoration: none; font-size: .9rem; }
+body > a::before { content: "← "; }
+body > a:hover { text-decoration: underline; }
