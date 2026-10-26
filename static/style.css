@@ -122,7 +122,7 @@ h1::after {
 /* 完了・編集・削除のボタン（小さな丸いタグ風） */
 .actions { display: flex; align-items: center; gap: 6px; }
 .actions form { margin: 0; }
-.actions a, .toggle, .delete {
+.actions a, .toggle, .delete, .postpone {
   display: inline-block;
   padding: 3px 12px;
   font: inherit;
@@ -139,6 +139,46 @@ h1::after {
 .delete { color: var(--red); background: #f7e6e1; }
 .actions a:hover, .toggle:hover, .delete:hover { opacity: .75; }
 button:disabled { opacity: .6; cursor: wait; }
+
+/* 期日切れのまとめ枠 */
+.overdue {
+  background: #fbf1ed;
+  border: 1px solid var(--pink);
+  border-radius: 20px;
+  padding: 16px 20px 18px;
+  margin-bottom: 24px;
+}
+.overdue-title { font-size: 1rem; font-weight: 700; color: var(--red); margin: 0 0 10px; }
+.overdue-list { list-style: none; margin: 0 0 14px; padding: 0; }
+.overdue-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--pink);
+}
+.overdue-list li:last-child { border-bottom: none; }
+.overdue-text { display: flex; flex-direction: column; min-width: 0; }
+.overdue-name { font-weight: 700; overflow-wrap: anywhere; }
+.overdue-due { font-size: .8rem; color: var(--muted); }
+.postpone { color: var(--sage-dark); background: transparent; border-color: var(--sage); }
+.postpone-all {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  font: inherit;
+  font-weight: 700;
+  color: var(--sage-dark);
+  background: var(--card);
+  border: 1px solid var(--sage);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background .15s;
+}
+.postpone-all:hover { background: #eef3f0; }
+.postpone:hover { opacity: .75; }
 
 .empty { text-align: center; color: var(--muted); padding: 24px 0; }
 

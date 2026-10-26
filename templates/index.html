@@ -13,6 +13,33 @@
 <body>
   <h1>My todo</h1>
 
+  {% if overdue %}
+    <section class="overdue">
+      <h2 class="overdue-title">期日を過ぎたやることが{{ overdue|length }}件あります</h2>
+      <ul class="overdue-list">
+        {% for todo in overdue %}
+          <li>
+            <div class="overdue-text">
+              <span class="overdue-name">{{ todo.title }}</span>
+              <span class="overdue-due">期限: {{ todo.due_date }}</span>
+            </div>
+            <span class="actions">
+              <form method="post" action="{{ url_for('complete', todo_id=todo.id) }}">
+                <button type="submit" class="toggle">終わった</button>
+              </form>
+              <form method="post" action="{{ url_for('postpone', todo_id=todo.id) }}">
+                <button type="submit" class="postpone">明日に延期</button>
+              </form>
+            </span>
+          </li>
+        {% endfor %}
+      </ul>
+      <form method="post" action="{{ url_for('postpone_all') }}">
+        <button type="submit" class="postpone-all">すべて明日に延期</button>
+      </form>
+    </section>
+  {% endif %}
+
   <form class="add-form" method="post" action="{{ url_for('add') }}">
     {% if error %}<p class="error">{{ error }}</p>{% endif %}
     <label for="title">タイトル（必須）</label>

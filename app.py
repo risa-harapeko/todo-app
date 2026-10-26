@@ -10,7 +10,8 @@ app.register_blueprint(line_bp)
 @app.route("/")
 def index():
     todos = sheets.get_worksheet().get_all_records()
-    return render_template("index.html", todos=todos)
+    overdue = [t for t, _ in sheets.overdue_todos(todos)]
+    return render_template("index.html", todos=todos, overdue=overdue)
 
 
 @app.route("/add", methods=["POST"])
@@ -25,6 +26,7 @@ def add():
         return render_template(
             "index.html",
             todos=todos,
+            overdue=[t for t, _ in sheets.overdue_todos(todos)],
             error="タイトルを入力してください。",
             form=request.form,
         ), 400
@@ -34,11 +36,10 @@ def add():
 
 
 def find_todo(ws, todo_id):
-    # 1行目は見出しなので、データのi番目はシートの i+2 行目
-    for i, t in enumerate(ws.get_all_records()):
-        if str(t["id"]) == str(todo_id):
-            return t, i + 2
-    abort(404)
+    found = sheets.find_todo(ws, todo_id)
+    if found is None:
+        abort(404)
+    return found
 
 
 @app.route("/edit/<int:todo_id>", methods=["GET", "POST"])
@@ -69,10 +70,35 @@ def edit(todo_id):
 def toggle(todo_id):
     ws = sheets.get_worksheet()
     todo, row = find_todo(ws, todo_id)
-    now = sheets.now_str()
-    # G列(done)が「済」なら空に、空なら「済」に切り替える
-    new_done = "" if todo.get("done") == "済" else "済"
-    ws.update(range_name=f"F{row}:G{row}", values=[[now, new_done]])
+    # 完了なら未完了に、未完了なら完了に切り替える
+    sheets.set_done(ws, row, not sheets.is_done(todo))
+    return redirect(url_for("index"))
+
+
+@app.route("/complete/<int:todo_id>", methods=["POST"])
+def complete(todo_id):
+    # 期日切れの枠の「終わった」。二度押しで未完了に戻らないよう、完了にするだけ
+    ws = sheets.get_worksheet()
+    todo, row = find_todo(ws, todo_id)
+    if not sheets.is_done(todo):
+        sheets.set_done(ws, row, True)
+    return redirect(url_for("index"))
+
+
+@app.route("/postpone/<int:todo_id>", methods=["POST"])
+def postpone(todo_id):
+    ws = sheets.get_worksheet()
+    _, row = find_todo(ws, todo_id)
+    sheets.postpone_to_tomorrow(ws, [row])
+    return redirect(url_for("index"))
+
+
+@app.route("/postpone_all", methods=["POST"])
+def postpone_all():
+    # 押した時点のシートで期日切れを数え直してから、まとめて延期する
+    ws = sheets.get_worksheet()
+    rows = [row for _, row in sheets.overdue_todos(ws.get_all_records())]
+    sheets.postpone_to_tomorrow(ws, rows)
     return redirect(url_for("index"))
 
 
