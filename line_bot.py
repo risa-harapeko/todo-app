@@ -7,8 +7,10 @@
   10/30 資料送る    → 期日は10月30日
   完了              → 未完了のやることをボタンで出し、タップで完了にする
 """
+import logging
 import os
 import re
+from collections import deque
 from datetime import date, datetime, timedelta, timezone
 
 from dotenv import load_dotenv
@@ -36,6 +38,30 @@ JST = timezone(timedelta(hours=9))
 line_bp = Blueprint("line", __name__)
 handler = WebhookHandler(os.environ.get("LINE_CHANNEL_SECRET", "not-set"))
 configuration = Configuration(access_token=os.environ.get("LINE_CHANNEL_ACCESS_TOKEN", ""))
+logger = logging.getLogger(__name__)
+
+# 処理済みのメッセージのID（LINEが同じメッセージを再送してきても、二重に登録しないため）
+_handled_ids = set()
+_handled_order = deque()
+
+
+def mark_handled(event):
+    """初めてのメッセージなら覚えて True、処理済み（再送）なら False"""
+    event_id = getattr(event, "webhook_event_id", None)
+    if not event_id:
+        return True
+    if event_id in _handled_ids:
+        return False
+    _handled_ids.add(event_id)
+    _handled_order.append(event_id)
+    if len(_handled_order) > 1000:  # 古いものから忘れる
+        _handled_ids.discard(_handled_order.popleft())
+    return True
+
+
+def forget_handled(event):
+    """登録に失敗したときは忘れて、LINEの再送でもう一度試せるようにする"""
+    _handled_ids.discard(getattr(event, "webhook_event_id", None))
 
 
 def parse_message(text):
@@ -69,13 +95,18 @@ def parse_message(text):
 
 
 def reply(reply_token, text, quick_reply=None):
-    with ApiClient(configuration) as api_client:
-        MessagingApi(api_client).reply_message(
-            ReplyMessageRequest(
-                reply_token=reply_token,
-                messages=[TextMessage(text=text, quick_reply=quick_reply)],
+    # 返信に失敗しても（返信用の鍵の期限切れなど）エラーにしない。
+    # エラーにするとLINEが同じメッセージを再送してきて、登録がくり返されるため
+    try:
+        with ApiClient(configuration) as api_client:
+            MessagingApi(api_client).reply_message(
+                ReplyMessageRequest(
+                    reply_token=reply_token,
+                    messages=[TextMessage(text=text, quick_reply=quick_reply)],
+                )
             )
-        )
+    except Exception:
+        logger.exception("LINEへの返信に失敗しました")
 
 
 def check_user(event):
@@ -135,6 +166,8 @@ def callback():
 
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_text(event):
+    if not mark_handled(event):
+        return
     if not check_user(event):
         return
 
@@ -151,6 +184,7 @@ def handle_text(event):
     try:
         sheets.add_todo(title, "", due_date)
     except Exception:
+        forget_handled(event)
         reply(event.reply_token, "登録できませんでした。時間をおいてもう一度送ってください。")
         raise
 
@@ -159,6 +193,8 @@ def handle_text(event):
 
 @handler.add(PostbackEvent)
 def handle_postback(event):
+    if not mark_handled(event):
+        return
     if not check_user(event):
         return
 
@@ -166,8 +202,12 @@ def handle_postback(event):
     if not data.startswith("done:"):
         return
 
-    ws = sheets.get_worksheet()
-    todos = ws.get_all_records()
+    try:
+        ws = sheets.get_worksheet()
+        todos = ws.get_all_records()
+    except Exception:
+        forget_handled(event)
+        raise
     found = sheets.find_todo(ws, data.removeprefix("done:"), todos=todos)
     if found is None:
         reply(event.reply_token, "そのやることは見つかりませんでした（削除された可能性があります）")
@@ -178,7 +218,11 @@ def handle_postback(event):
         reply(event.reply_token, "すでに完了しています")
         return
 
-    sheets.set_done(ws, row, True)
+    try:
+        sheets.set_done(ws, row, True)
+    except Exception:
+        forget_handled(event)
+        raise
     # 今完了にした1件は、読み込んだ todos にはまだ入っていないので +1 する
     count = sheets.count_completed_today(todos) + 1
     reply(event.reply_token, f"完了しました！ {todo['title']}　今日の完了：{count}件")
