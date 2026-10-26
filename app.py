@@ -1,38 +1,21 @@
-import json
-import os
-from datetime import datetime, timedelta, timezone
-
-import gspread
-from dotenv import load_dotenv
 from flask import Flask, abort, redirect, render_template, request, url_for
 
-load_dotenv()
+import sheets
+from line_bot import line_bp
 
 app = Flask(__name__)
-
-# Renderのサーバーは世界標準時なので、日本時間を明示する
-JST = timezone(timedelta(hours=9))
-
-
-def get_worksheet():
-    # 公開先(Render)では環境変数 GOOGLE_CREDENTIALS から、手元では credentials.json から読む
-    creds_json = os.environ.get("GOOGLE_CREDENTIALS")
-    if creds_json:
-        gc = gspread.service_account_from_dict(json.loads(creds_json))
-    else:
-        gc = gspread.service_account(filename="credentials.json")
-    return gc.open_by_key(os.environ["SPREADSHEET_ID"]).worksheet("todos")
+app.register_blueprint(line_bp)
 
 
 @app.route("/")
 def index():
-    todos = get_worksheet().get_all_records()
+    todos = sheets.get_worksheet().get_all_records()
     return render_template("index.html", todos=todos)
 
 
 @app.route("/add", methods=["POST"])
 def add():
-    ws = get_worksheet()
+    ws = sheets.get_worksheet()
     title = request.form.get("title", "").strip()
     content = request.form.get("content", "").strip()
     due_date = request.form.get("due_date", "")
@@ -46,12 +29,7 @@ def add():
             form=request.form,
         ), 400
 
-    # 今あるidの最大値+1を新しいidにする
-    ids = [int(t["id"]) for t in ws.get_all_records() if str(t["id"]).isdigit()]
-    new_id = max(ids, default=0) + 1
-    now = datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S")
-
-    ws.append_row([new_id, title, content, due_date, now, now, ""])
+    sheets.add_todo(title, content, due_date, ws=ws)
     return redirect(url_for("index"))
 
 
@@ -65,7 +43,7 @@ def find_todo(ws, todo_id):
 
 @app.route("/edit/<int:todo_id>", methods=["GET", "POST"])
 def edit(todo_id):
-    ws = get_worksheet()
+    ws = sheets.get_worksheet()
     todo, row = find_todo(ws, todo_id)
 
     if request.method == "GET":
@@ -81,7 +59,7 @@ def edit(todo_id):
             "edit.html", todo=form_todo, error="タイトルを入力してください。"
         ), 400
 
-    now = datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S")
+    now = sheets.now_str()
     # B〜D列(title, content, due_date)とF列(updated_at)を書き換え、E列(created_at)はそのまま
     ws.update(range_name=f"B{row}:F{row}", values=[[title, content, due_date, todo["created_at"], now]])
     return redirect(url_for("index"))
@@ -89,9 +67,9 @@ def edit(todo_id):
 
 @app.route("/toggle/<int:todo_id>", methods=["POST"])
 def toggle(todo_id):
-    ws = get_worksheet()
+    ws = sheets.get_worksheet()
     todo, row = find_todo(ws, todo_id)
-    now = datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S")
+    now = sheets.now_str()
     # G列(done)が「済」なら空に、空なら「済」に切り替える
     new_done = "" if todo.get("done") == "済" else "済"
     ws.update(range_name=f"F{row}:G{row}", values=[[now, new_done]])
@@ -100,7 +78,7 @@ def toggle(todo_id):
 
 @app.route("/delete/<int:todo_id>", methods=["POST"])
 def delete(todo_id):
-    ws = get_worksheet()
+    ws = sheets.get_worksheet()
     _, row = find_todo(ws, todo_id)
     ws.delete_rows(row)
     return redirect(url_for("index"))
