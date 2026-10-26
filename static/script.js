@@ -17,6 +17,20 @@ document.addEventListener("submit", (e) => {
   }
 });
 
+// 「その他のやること」を開いたか閉じたかを覚えておく（ボタンを押して一覧に戻っても同じ状態にする）
+document.addEventListener("DOMContentLoaded", () => {
+  const others = document.getElementById("others");
+  if (!others) return;
+  try {
+    if (localStorage.getItem("othersOpen") === "1") others.open = true;
+  } catch (e) {}
+  others.addEventListener("toggle", () => {
+    try {
+      localStorage.setItem("othersOpen", others.open ? "1" : "0");
+    } catch (e) {}
+  });
+});
+
 // ブラウザの「戻る」で戻ってきたときに、ボタンを元に戻す
 window.addEventListener("pageshow", (e) => {
   if (e.persisted) location.reload();

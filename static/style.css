@@ -122,7 +122,7 @@ h1::after {
 /* 完了・編集・削除のボタン（小さな丸いタグ風） */
 .actions { display: flex; align-items: center; gap: 6px; }
 .actions form { margin: 0; }
-.actions a, .toggle, .delete, .postpone {
+.actions a, .toggle, .delete, .postpone, .start, .star {
   display: inline-block;
   padding: 3px 12px;
   font: inherit;
@@ -178,7 +178,86 @@ button:disabled { opacity: .6; cursor: wait; }
   transition: background .15s;
 }
 .postpone-all:hover { background: #eef3f0; }
-.postpone:hover { opacity: .75; }
+.postpone:hover, .start:hover, .star:hover { opacity: .75; }
+
+/* ① 今やっていること（大きく表示） */
+.now {
+  background: var(--sage);
+  color: #fff;
+  border-radius: 24px;
+  padding: 20px 22px;
+  margin-bottom: 20px;
+  box-shadow: 0 6px 18px rgba(116, 144, 127, .25);
+}
+.now-label { margin: 0 0 4px; font-size: .8rem; letter-spacing: .1em; opacity: .85; }
+.now-title { margin: 0; font-size: 1.5rem; font-weight: 700; overflow-wrap: anywhere; }
+.now-content { margin: 6px 0 0; white-space: pre-wrap; opacity: .95; }
+.now-due { margin: 6px 0 0; font-size: .85rem; opacity: .85; }
+.now-actions { display: flex; gap: 8px; margin-top: 14px; }
+.now-actions form { margin: 0; }
+.now-actions .toggle, .now-actions .pause {
+  padding: 6px 18px;
+  font: inherit;
+  font-size: .9rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.now-actions .toggle { color: var(--sage-dark); background: #fff; border: none; text-decoration: none; }
+.now-actions .pause { color: #fff; background: transparent; border: 1px solid rgba(255, 255, 255, .8); }
+.now-actions .toggle:hover, .now-actions .pause:hover { opacity: .8; }
+
+/* ②③ 今日の3つ・割り込み箱の枠 */
+.box {
+  border-radius: 20px;
+  padding: 16px 20px 18px;
+  margin-bottom: 20px;
+}
+.today-box { background: #eef3f0; border: 1px solid var(--sage); }
+.interrupt-box { background: #eef2f6; border: 1px solid var(--blue); }
+.box-title { display: flex; align-items: center; gap: 8px; font-size: 1rem; font-weight: 700; margin: 0 0 8px; }
+.today-box .box-title { color: var(--sage-dark); }
+.interrupt-box .box-title { color: #4f6b80; }
+.box-count { font-size: .8rem; font-weight: 400; color: var(--muted); }
+.box-list { list-style: none; margin: 0; padding: 0; }
+.box-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--line);
+}
+.box-list li:last-child { border-bottom: none; }
+.box-empty { margin: 4px 0 0; font-size: .9rem; color: var(--muted); }
+.notice { margin: 0 0 8px; padding: 8px 12px; font-size: .85rem; color: var(--red); background: #fbf1ed; border-radius: 12px; }
+.badge { padding: 3px 12px; font-size: .8rem; color: #fff; background: var(--mustard); border-radius: 999px; }
+.start { color: #fff; background: var(--blue); }
+.star { color: var(--mustard); background: #fbf4e3; font-size: .95rem; line-height: 1.2; }
+
+/* 追加フォームのチェックボックス */
+.add-form .check { display: flex; align-items: center; gap: 8px; margin-top: 14px; font-size: .9rem; color: var(--text); cursor: pointer; }
+.add-form .check input { width: auto; margin: 0; accent-color: var(--sage); }
+
+/* ⑤ その他のやること（折りたたみ） */
+.others summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  margin-bottom: 14px;
+  font-weight: 700;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  list-style: none;
+}
+.others summary::-webkit-details-marker { display: none; }
+.others summary::before { content: "▸"; color: var(--sage); transition: transform .15s; }
+.others[open] summary::before { transform: rotate(90deg); }
+.done-heading { margin: 20px 0 10px; font-size: .85rem; color: var(--muted); }
 
 .empty { text-align: center; color: var(--muted); padding: 24px 0; }
 

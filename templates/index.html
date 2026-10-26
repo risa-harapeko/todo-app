@@ -13,6 +13,121 @@
 <body>
   <h1>My todo</h1>
 
+  {# 「完了」ボタン（今やっていること・今日の3つ・割り込み箱で共通。二度押ししても未完了に戻らない） #}
+  {% macro complete_button(todo, label="完了") %}
+    <form method="post" action="{{ url_for('complete', todo_id=todo.id) }}">
+      <button type="submit" class="toggle">{{ label }}</button>
+    </form>
+  {% endmacro %}
+
+  {# 「始める」ボタン。ほかに今やっていることがあれば、中断してよいか確認する #}
+  {% macro start_button(todo) %}
+    <form method="post" action="{{ url_for('start', todo_id=todo.id) }}"
+          {% if doing and doing.id != todo.id %}onsubmit='return confirm({{ ("『" ~ doing.title ~ "』を中断して『" ~ todo.title ~ "』を始めますか？")|tojson }});'{% endif %}>
+      <button type="submit" class="start">始める</button>
+    </form>
+  {% endmacro %}
+
+  {# その他のやること・完了済みのカード（今までの一覧と同じ） #}
+  {% macro todo_card(todo, star=false) %}
+    <div class="todo{% if todo.done == '済' %} done{% endif %}">
+      <h2>{{ todo.title }}</h2>
+      {% if todo.content %}<p>{{ todo.content }}</p>{% endif %}
+      <div class="meta">
+        <span>{% if todo.due_date %}期限: {{ todo.due_date }}{% else %}期限なし{% endif %}</span>
+        <span class="actions">
+          {% if star %}
+            <form method="post" action="{{ url_for('star', todo_id=todo.id) }}">
+              <button type="submit" class="star" title="今日の3つに入れる" aria-label="今日の3つに入れる">☆</button>
+            </form>
+          {% endif %}
+          <form method="post" action="{{ url_for('toggle', todo_id=todo.id) }}">
+            <button type="submit" class="toggle">{% if todo.done == '済' %}未完了に戻す{% else %}完了{% endif %}</button>
+          </form>
+          <a href="{{ url_for('edit', todo_id=todo.id) }}">編集</a>
+          <form method="post" action="{{ url_for('delete', todo_id=todo.id) }}"
+                onsubmit='return confirm({{ ("「" ~ todo.title ~ "」を削除しますか？")|tojson }});'>
+            <button type="submit" class="delete">削除</button>
+          </form>
+        </span>
+      </div>
+    </div>
+  {% endmacro %}
+
+  {# ① 今やっていること #}
+  {% if doing %}
+    <section class="now">
+      <p class="now-label">今やっていること</p>
+      <h2 class="now-title">{{ doing.title }}</h2>
+      {% if doing.content %}<p class="now-content">{{ doing.content }}</p>{% endif %}
+      {% if doing.due_date %}<p class="now-due">期限: {{ doing.due_date }}</p>{% endif %}
+      <div class="now-actions">
+        {{ complete_button(doing) }}
+        <form method="post" action="{{ url_for('stop', todo_id=doing.id) }}">
+          <button type="submit" class="pause">中断する</button>
+        </form>
+      </div>
+    </section>
+  {% endif %}
+
+  {# ② 今日の3つ #}
+  <section class="box today-box">
+    <h2 class="box-title">今日の3つ <span class="box-count">{{ today3|length }}/{{ today_limit }}</span></h2>
+    {% if notice %}<p class="notice">{{ notice }}</p>{% endif %}
+    {% if today3 %}
+      <ul class="box-list">
+        {% for todo in today3 %}
+          <li>
+            <div class="overdue-text">
+              <span class="overdue-name">{{ todo.title }}</span>
+              {% if todo.due_date %}<span class="overdue-due">期限: {{ todo.due_date }}</span>{% endif %}
+            </div>
+            <span class="actions">
+              {% if doing and doing.id == todo.id %}
+                <span class="badge">進行中</span>
+              {% else %}
+                {{ start_button(todo) }}
+              {% endif %}
+              {{ complete_button(todo) }}
+              <form method="post" action="{{ url_for('unstar', todo_id=todo.id) }}">
+                <button type="submit" class="postpone">外す</button>
+              </form>
+            </span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="box-empty">☆ボタンで今日やることを3つまで選びましょう</p>
+    {% endif %}
+  </section>
+
+  {# ③ 割り込み箱 #}
+  {% if interrupts %}
+    <section class="box interrupt-box">
+      <h2 class="box-title">割り込み箱 <span class="box-count">{{ interrupts|length }}件</span></h2>
+      <ul class="box-list">
+        {% for todo in interrupts %}
+          <li>
+            <div class="overdue-text">
+              <span class="overdue-name">{{ todo.title }}</span>
+              {% if todo.due_date %}<span class="overdue-due">期限: {{ todo.due_date }}</span>{% endif %}
+            </div>
+            <span class="actions">
+              <form method="post" action="{{ url_for('star', todo_id=todo.id) }}">
+                <button type="submit" class="start">今日の3つに入れる</button>
+              </form>
+              <form method="post" action="{{ url_for('make_normal', todo_id=todo.id) }}">
+                <button type="submit" class="postpone">通常に移す</button>
+              </form>
+              {{ complete_button(todo) }}
+            </span>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
+  {# ④ 期日切れまとめ（今までと同じ） #}
   {% if overdue %}
     <section class="overdue">
       <h2 class="overdue-title">期日を過ぎたやることが{{ overdue|length }}件あります</h2>
@@ -24,9 +139,7 @@
               <span class="overdue-due">期限: {{ todo.due_date }}</span>
             </div>
             <span class="actions">
-              <form method="post" action="{{ url_for('complete', todo_id=todo.id) }}">
-                <button type="submit" class="toggle">終わった</button>
-              </form>
+              {{ complete_button(todo, "終わった") }}
               <form method="post" action="{{ url_for('postpone', todo_id=todo.id) }}">
                 <button type="submit" class="postpone">明日に延期</button>
               </form>
@@ -48,31 +161,31 @@
     <textarea id="content" name="content" rows="3">{{ form.content if form }}</textarea>
     <label for="due_date">期限</label>
     <input id="due_date" name="due_date" type="date" value="{{ form.due_date if form }}">
+    <label class="check">
+      <input type="checkbox" name="interrupt" value="1" {% if form and form.interrupt %}checked{% endif %}>
+      割り込みとして登録
+    </label>
     <button type="submit">追加</button>
   </form>
 
-  {% if todos %}
-    {% for todo in todos %}
-      <div class="todo{% if todo.done == '済' %} done{% endif %}">
-        <h2>{{ todo.title }}</h2>
-        {% if todo.content %}<p>{{ todo.content }}</p>{% endif %}
-        <div class="meta">
-          <span>{% if todo.due_date %}期限: {{ todo.due_date }}{% else %}期限なし{% endif %}</span>
-          <span class="actions">
-            <form method="post" action="{{ url_for('toggle', todo_id=todo.id) }}">
-              <button type="submit" class="toggle">{% if todo.done == '済' %}未完了に戻す{% else %}完了{% endif %}</button>
-            </form>
-            <a href="{{ url_for('edit', todo_id=todo.id) }}">編集</a>
-            <form method="post" action="{{ url_for('delete', todo_id=todo.id) }}"
-                  onsubmit='return confirm({{ ("「" ~ todo.title ~ "」を削除しますか？")|tojson }});'>
-              <button type="submit" class="delete">削除</button>
-            </form>
-          </span>
-        </div>
-      </div>
-    {% endfor %}
-  {% else %}
-    <p class="empty">Todoはまだありません。</p>
-  {% endif %}
+  {# ⑤ その他のやること（折りたたみ）。完了済みはこの中の最後に今までどおり出す #}
+  <details class="others" id="others">
+    <summary>その他のやること <span class="box-count">{{ others|length }}件</span></summary>
+    {% if others or done_todos %}
+      {% for todo in others %}
+        {{ todo_card(todo, star=true) }}
+      {% endfor %}
+      {% if done_todos %}
+        <p class="done-heading">完了済み {{ done_todos|length }}件</p>
+        {% for todo in done_todos %}
+          {{ todo_card(todo) }}
+        {% endfor %}
+      {% endif %}
+    {% elif todos %}
+      <p class="empty">ほかのやることはありません。</p>
+    {% else %}
+      <p class="empty">Todoはまだありません。</p>
+    {% endif %}
+  </details>
 </body>
 </html>

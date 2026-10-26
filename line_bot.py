@@ -6,6 +6,7 @@
   あさって 資料送る → 期日は明後日
   10/30 資料送る    → 期日は10月30日
   完了              → 未完了のやることをボタンで出し、タップで完了にする
+  割り込み 電話する → 期日は今日で、割り込み箱に入れる（「割込 電話する」でも可）
 """
 import logging
 import os
@@ -94,6 +95,16 @@ def parse_message(text):
     return title[:50], due.isoformat()
 
 
+def parse_interrupt(text):
+    """「割り込み 〇〇」「割込 〇〇」なら 〇〇 を返す。それ以外は None"""
+    parts = text.replace("　", " ").strip().split(" ", 1)
+    if len(parts) == 2 and parts[0] in ("割り込み", "割込"):
+        title = parts[1].strip()
+        if title:
+            return title[:50]
+    return None
+
+
 def reply(reply_token, text, quick_reply=None):
     # 返信に失敗しても（返信用の鍵の期限切れなど）エラーにしない。
     # エラーにするとLINEが同じメッセージを再送してきて、登録がくり返されるため
@@ -174,6 +185,19 @@ def handle_text(event):
     # 「完了」とだけ送られたら、登録ではなく完了にするやることを選んでもらう
     if event.message.text.replace("　", " ").strip() == "完了":
         send_done_choices(event.reply_token)
+        return
+
+    # 「割り込み 〇〇」「割込 〇〇」は、期日は今日で割り込み箱に入れる
+    interrupt_title = parse_interrupt(event.message.text)
+    if interrupt_title:
+        due_date = datetime.now(JST).date().isoformat()
+        try:
+            sheets.add_todo(interrupt_title, "", due_date, todo_type=sheets.INTERRUPT)
+        except Exception:
+            forget_handled(event)
+            reply(event.reply_token, "登録できませんでした。時間をおいてもう一度送ってください。")
+            raise
+        reply(event.reply_token, "割り込み箱に入れました")
         return
 
     title, due_date = parse_message(event.message.text)
